@@ -1,0 +1,33 @@
+<coordinator-app name="meta_sync" frequency="0 */1 * * *" start="${startTime}" end="${endTime}" timezone="${timezoneCode}" xmlns="uri:oozie:coordinator:0.4" xmlns:sla="uri:oozie:sla:0.2">
+    <controls>
+        <timeout>60</timeout>
+        <concurrency>1</concurrency>
+    </controls>
+    <datasets>
+      <dataset name="sample_dataset" frequency="1440" initial-instance="2020-01-01T00:00Z" timezone="${timezoneCode}" >
+        <uri-template>${Datasetspath}/path/to/dir/partkey=${YEAR}${MONTH}${DAY}</uri-template>
+        <done-flag></done-flag>
+      </dataset>
+    </datasets>
+    <input-events>
+        <data-in name="dataset_sample_dataset" dataset="sample_dataset">
+          <instance>${coord:latest(0)}</instance>
+        </data-in>
+    </input-events>
+  <action>
+        <workflow>
+            <app-path>${oozieRootDirectory}/oozie/meta_sync_workflow.xml</app-path>
+            <configuration>
+                 <property>
+                    <name>sample_dataset</name>        
+                    <value>${coord:dataIn('dataset_sample_dataset')}</value>    
+                </property>
+            </configuration>
+        </workflow>
+        <sla:info>
+            <sla:nominal-time>${coord:nominalTime()}</sla:nominal-time>
+            <sla:should-start>${10 * MINUTES}</sla:should-start>
+            <sla:should-end>${55 * MINUTES}</sla:should-end>
+        </sla:info>
+    </action>
+</coordinator-app>
