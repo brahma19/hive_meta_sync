@@ -1,0 +1,46 @@
+<workflow-app xmlns="uri:oozie:workflow:0.4" name="meta_sync_process" xmlns:sla="uri:oozie:sla:0.2">
+    <global>
+        <job-tracker>${job_tracker}</job-tracker>
+        <name-node>${name_node}</name-node>
+       <configuration>		
+            <property>
+		        <name>oozie.launcher.fs.permissions.umask-mode</name>
+                <value>026</value>
+            </property>
+            <property>
+                <name>oozie.launcher.mapred.job.queue.name</name>
+                <value>${queueName}</value>
+            </property>
+            <property>
+                <name>oozie.use.system.libpath</name>
+                <value>True</value>
+            </property>
+        </configuration>
+    </global>
+    <credentials>
+        <credential name="hcatauth" type="hcat">
+            <property>
+                <name>hcat.metastore.uri</name>
+                <value>${hcat_uri}</value>
+            </property>
+            <property>
+                <name>hcat.metastore.principal</name>
+                <value>${hcat_principal}</value>
+            </property>
+        </credential>
+    </credentials>
+    <start to="exec_meta_sync"/>
+    <action name="exec_meta_sync" retry-max="1" retry-interval="1" cred="hcatauth">
+        <hive xmlns="uri:oozie:hive-action:0.4">
+            <script>../sql/metasync_add_partitions.sql</script>
+            <param>DBSCHEMA=${dbname}</param>
+            <param>sample_loc=${dataset_sample_dataset}</param>
+            <param>BATCHDATE=${replaceAll(dataset_sample_dataset,'[a-z0-9:./_-]*[/partkey=]','')}</param>
+        </hive>
+        <ok to="end"/>
+        <error to="fail"/>
+    </action>
+    <kill name="fail">
+        <message>Job meta_sync failed [${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <end name="end"/>
